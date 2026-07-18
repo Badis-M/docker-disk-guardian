@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import docker
@@ -12,6 +13,7 @@ from docker_disk_guardian.errors import DockerUnavailableError
 from docker_disk_guardian.models import (
     BuildCacheResource,
     ContainerResource,
+    ContainerState,
     ImageResource,
     NetworkResource,
     ResourceType,
@@ -38,7 +40,35 @@ class DockerSdkGateway:
         return cls(client)
 
     def list_containers(self) -> tuple[ContainerResource, ...]:
-        raise NotImplementedError
+        resources: list[ContainerResource] = []
+        for summary in self._client.api.containers(all=True):
+            details = self._client.api.inspect_container(summary["Id"], size=True)
+            state_data = details.get("State", {})
+            status = state_data.get("Status", summary.get("State", "unknown"))
+            mounts = details.get("Mounts", [])
+            networks = details.get("NetworkSettings", {}).get("Networks", {})
+            names = summary.get("Names") or [details.get("Name", summary["Id"][:12])]
+            resources.append(
+                ContainerResource(
+                    id=summary["Id"],
+                    name=str(names[0]).lstrip("/"),
+                    created_at=self._parse_datetime(details.get("Created", summary["Created"])),
+                    size_bytes=details.get("SizeRw"),
+                    labels=details.get("Config", {}).get("Labels") or summary.get("Labels") or {},
+                    state=self._container_state(status),
+                    image_id=details.get("Image", summary.get("ImageID", "unknown")),
+                    finished_at=self._optional_datetime(state_data.get("FinishedAt")),
+                    volume_names=tuple(
+                        sorted(
+                            mount["Name"]
+                            for mount in mounts
+                            if mount.get("Type") == "volume" and mount.get("Name")
+                        )
+                    ),
+                    network_names=tuple(sorted(networks)),
+                )
+            )
+        return tuple(resources)
 
     def list_images(self) -> tuple[ImageResource, ...]:
         raise NotImplementedError
@@ -68,3 +98,23 @@ class DockerSdkGateway:
     def close(self) -> None:
         self._client.close()
 
+    @staticmethod
+    def _parse_datetime(value: str | int | float) -> datetime:
+        if isinstance(value, int | float):
+            return datetime.fromtimestamp(value, tz=UTC)
+        normalized = value.replace("Z", "+00:00")
+        return datetime.fromisoformat(normalized).astimezone(UTC)
+
+    @classmethod
+    def _optional_datetime(cls, value: object) -> datetime | None:
+        if not isinstance(value, str) or not value or value.startswith("0001-"):
+            return None
+        return cls._parse_datetime(value)
+
+    @staticmethod
+    def _container_state(value: str) -> ContainerState:
+        if value == "running":
+            return ContainerState.RUNNING
+        if value in {"exited", "dead"}:
+            return ContainerState.STOPPED
+        return ContainerState.OTHER
