@@ -60,3 +60,25 @@ def test_lists_typed_containers() -> None:
     assert containers[0].volume_names == ("web-data",)
     assert containers[0].network_names == ("frontend",)
     client.api.inspect_container.assert_called_once_with("container-1", size=True)
+
+
+def test_lists_images_with_container_references() -> None:
+    client = Mock()
+    client.api.containers.return_value = [{"Id": "container-1", "ImageID": "sha256:image-1"}]
+    image = Mock()
+    image.id = "sha256:image-1"
+    image.short_id = "sha256:image"
+    image.attrs = {
+        "Created": "2026-03-07T00:00:00Z",
+        "Size": 2048,
+        "RepoTags": ["example:1"],
+        "RepoDigests": ["example@sha256:digest"],
+        "Config": {"Labels": {"keep": "true"}},
+    }
+    client.images.list.return_value = [image]
+
+    images = DockerSdkGateway(client).list_images()
+
+    assert images[0].name == "example:1"
+    assert images[0].container_ids == ("container-1",)
+    assert images[0].labels == {"keep": "true"}

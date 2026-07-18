@@ -71,7 +71,27 @@ class DockerSdkGateway:
         return tuple(resources)
 
     def list_images(self) -> tuple[ImageResource, ...]:
-        raise NotImplementedError
+        references: dict[str, list[str]] = {}
+        for container in self._client.api.containers(all=True):
+            references.setdefault(container.get("ImageID", ""), []).append(container["Id"])
+
+        resources: list[ImageResource] = []
+        for image in self._client.images.list(all=True):
+            attributes = image.attrs
+            tags = tuple(sorted(attributes.get("RepoTags") or ()))
+            resources.append(
+                ImageResource(
+                    id=image.id,
+                    name=tags[0] if tags else image.short_id,
+                    created_at=self._parse_datetime(attributes["Created"]),
+                    size_bytes=attributes.get("Size"),
+                    labels=attributes.get("Config", {}).get("Labels") or {},
+                    tags=tags,
+                    digests=tuple(sorted(attributes.get("RepoDigests") or ())),
+                    container_ids=tuple(sorted(references.get(image.id, ()))),
+                )
+            )
+        return tuple(resources)
 
     def list_volumes(self) -> tuple[VolumeResource, ...]:
         raise NotImplementedError
