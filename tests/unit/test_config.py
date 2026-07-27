@@ -3,7 +3,8 @@ from datetime import timedelta
 import pytest
 from pydantic import ValidationError
 
-from docker_disk_guardian.config import CleanupPolicy, parse_duration
+from docker_disk_guardian.config import CleanupPolicy, load_policy, parse_duration
+from docker_disk_guardian.errors import ConfigurationError
 
 
 @pytest.mark.parametrize(
@@ -36,3 +37,36 @@ def test_default_policy_protects_named_volumes_and_cache() -> None:
     assert not policy.volumes.allow_named_volume_deletion
     assert not policy.build_cache.allow_deletion
 
+
+def test_loads_valid_yaml_policy(tmp_path: object) -> None:
+    from pathlib import Path
+
+    path = Path(str(tmp_path)) / "policy.yaml"
+    path.write_text(
+        "version: 1\nretention:\n  stopped_containers: 48h\n",
+        encoding="utf-8",
+    )
+
+    policy = load_policy(path)
+
+    assert policy.retention.stopped_containers == timedelta(hours=48)
+
+
+def test_reports_field_path_for_invalid_policy(tmp_path: object) -> None:
+    from pathlib import Path
+
+    path = Path(str(tmp_path)) / "policy.yaml"
+    path.write_text("retention:\n  stopped_containers: -2h\n", encoding="utf-8")
+
+    with pytest.raises(ConfigurationError, match="retention.stopped_containers"):
+        load_policy(path)
+
+
+def test_rejects_non_mapping_policy(tmp_path: object) -> None:
+    from pathlib import Path
+
+    path = Path(str(tmp_path)) / "policy.yaml"
+    path.write_text("- unsafe\n- list\n", encoding="utf-8")
+
+    with pytest.raises(ConfigurationError, match="YAML mapping"):
+        load_policy(path)
