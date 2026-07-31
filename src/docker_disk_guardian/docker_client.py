@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import re
 from typing import Any
 
 import docker
@@ -94,7 +95,33 @@ class DockerSdkGateway:
         return tuple(resources)
 
     def list_volumes(self) -> tuple[VolumeResource, ...]:
-        raise NotImplementedError
+        references: dict[str, list[str]] = {}
+        for container in self._client.api.containers(all=True):
+            for mount in container.get("Mounts") or ():
+                if mount.get("Type") == "volume" and mount.get("Name"):
+                    references.setdefault(mount["Name"], []).append(container["Id"])
+
+        resources: list[VolumeResource] = []
+        for volume in self._client.volumes.list():
+            attributes = volume.attrs
+            name = attributes.get("Name", volume.name)
+            raw_size = (attributes.get("UsageData") or {}).get("Size")
+            size = raw_size if isinstance(raw_size, int) and raw_size >= 0 else None
+            resources.append(
+                VolumeResource(
+                    id=name,
+                    name=name,
+                    created_at=self._parse_datetime(
+                        attributes.get("CreatedAt", "1970-01-01T00:00:00Z")
+                    ),
+                    size_bytes=size,
+                    labels=attributes.get("Labels") or {},
+                    driver=attributes.get("Driver", "unknown"),
+                    container_ids=tuple(sorted(references.get(name, ()))),
+                    anonymous=re.fullmatch(r"[a-f0-9]{64}", name) is not None,
+                )
+            )
+        return tuple(resources)
 
     def list_networks(self) -> tuple[NetworkResource, ...]:
         raise NotImplementedError

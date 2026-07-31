@@ -82,3 +82,29 @@ def test_lists_images_with_container_references() -> None:
     assert images[0].name == "example:1"
     assert images[0].container_ids == ("container-1",)
     assert images[0].labels == {"keep": "true"}
+
+
+def test_lists_volumes_and_preserves_named_volume_safety_context() -> None:
+    client = Mock()
+    client.api.containers.return_value = [
+        {
+            "Id": "container-1",
+            "Mounts": [{"Type": "volume", "Name": "database-data"}],
+        }
+    ]
+    volume = Mock()
+    volume.name = "database-data"
+    volume.attrs = {
+        "Name": "database-data",
+        "CreatedAt": "2026-03-07T00:00:00Z",
+        "Driver": "local",
+        "Labels": {},
+        "UsageData": {"Size": 4096},
+    }
+    client.volumes.list.return_value = [volume]
+
+    volumes = DockerSdkGateway(client).list_volumes()
+
+    assert volumes[0].container_ids == ("container-1",)
+    assert volumes[0].size_bytes == 4096
+    assert not volumes[0].anonymous
