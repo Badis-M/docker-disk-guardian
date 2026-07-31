@@ -1,0 +1,17 @@
+version: 1
+retention:
+  stopped_containers: 168h
+  dangling_images: 72h
+  build_cache: 168h
+protection:
+  labels:
+    keep: "true"
+  image_tags:
+    - latest
+volumes:
+  allow_named_volume_deletion: false
+networks:
+  allow_custom_network_deletion: false
+build_cache:
+  allow_deletion: false
+

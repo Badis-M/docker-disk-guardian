@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 
 from docker_disk_guardian import __version__
+from docker_disk_guardian.config import load_policy
 from docker_disk_guardian.docker_client import DockerSdkGateway
 from docker_disk_guardian.errors import GuardianError
 from docker_disk_guardian.inventory import ALL_RESOURCE_TYPES, InventoryService
@@ -19,6 +20,8 @@ app = typer.Typer(
     help="Inspect, plan, and safely clean local Docker disk usage.",
     no_args_is_help=True,
 )
+policy_app = typer.Typer(help="Validate and inspect cleanup policies.")
+app.add_typer(policy_app, name="policy")
 
 
 class OutputFormat(StrEnum):
@@ -89,6 +92,17 @@ def inspect_command(
     finally:
         if gateway is not None:
             gateway.close()
+
+
+@policy_app.command("validate")
+def validate_policy(path: Annotated[Path, typer.Argument(help="YAML policy path.")]) -> None:
+    """Validate a cleanup policy without connecting to Docker."""
+    try:
+        policy = load_policy(path)
+    except GuardianError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=int(exc.exit_code)) from exc
+    typer.echo(f"Policy is valid (version {policy.version}).")
 
 
 if __name__ == "__main__":

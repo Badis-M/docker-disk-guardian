@@ -60,3 +60,17 @@ def test_inspect_rejects_empty_selection() -> None:
 
     assert result.exit_code == 2
     assert "At least one resource type" in result.output
+
+
+def test_policy_validate_does_not_connect_to_docker(tmp_path: object) -> None:
+    from pathlib import Path
+
+    policy = Path(str(tmp_path)) / "policy.yaml"
+    policy.write_text("version: 1\n", encoding="utf-8")
+
+    with patch("docker_disk_guardian.cli.DockerSdkGateway.connect") as connect:
+        result = runner.invoke(app, ["policy", "validate", str(policy)])
+
+    assert result.exit_code == 0
+    assert result.stdout == "Policy is valid (version 1).\n"
+    connect.assert_not_called()
