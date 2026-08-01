@@ -108,3 +108,24 @@ def test_lists_volumes_and_preserves_named_volume_safety_context() -> None:
     assert volumes[0].container_ids == ("container-1",)
     assert volumes[0].size_bytes == 4096
     assert not volumes[0].anonymous
+
+
+def test_marks_default_networks_as_protected_context() -> None:
+    client = Mock()
+    network = Mock()
+    network.id = "network-1"
+    network.name = "bridge"
+    network.attrs = {
+        "Id": "network-1",
+        "Name": "bridge",
+        "Created": "2026-03-07T00:00:00Z",
+        "Driver": "bridge",
+        "Labels": {},
+        "Containers": {},
+    }
+    client.networks.list.return_value = [network]
+
+    networks = DockerSdkGateway(client).list_networks()
+
+    assert networks[0].default
+    assert networks[0].container_ids == ()

@@ -124,7 +124,24 @@ class DockerSdkGateway:
         return tuple(resources)
 
     def list_networks(self) -> tuple[NetworkResource, ...]:
-        raise NotImplementedError
+        resources: list[NetworkResource] = []
+        for network in self._client.networks.list():
+            attributes = network.attrs
+            name = attributes.get("Name", network.name)
+            resources.append(
+                NetworkResource(
+                    id=attributes.get("Id", network.id),
+                    name=name,
+                    created_at=self._parse_datetime(
+                        attributes.get("Created", "1970-01-01T00:00:00Z")
+                    ),
+                    labels=attributes.get("Labels") or {},
+                    driver=attributes.get("Driver", "unknown"),
+                    container_ids=tuple(sorted((attributes.get("Containers") or {}).keys())),
+                    default=name in {"bridge", "host", "none"},
+                )
+            )
+        return tuple(resources)
 
     def list_build_cache(self) -> tuple[BuildCacheResource, ...]:
         raise NotImplementedError
