@@ -8,7 +8,7 @@ from typing import Any
 
 import docker
 from docker.client import DockerClient
-from docker.errors import DockerException
+from docker.errors import APIError, DockerException
 
 from docker_disk_guardian.errors import DockerUnavailableError
 from docker_disk_guardian.models import (
@@ -144,7 +144,23 @@ class DockerSdkGateway:
         return tuple(resources)
 
     def list_build_cache(self) -> tuple[BuildCacheResource, ...]:
-        raise NotImplementedError
+        try:
+            cache_entries = self._client.api.df().get("BuildCache") or ()
+        except APIError as exc:
+            if exc.status_code in {400, 404}:
+                return ()
+            raise
+        return tuple(
+            BuildCacheResource(
+                id=entry["ID"],
+                name=entry.get("Description") or entry["ID"][:12],
+                created_at=self._parse_datetime(entry["CreatedAt"]),
+                size_bytes=max(0, entry.get("Size", 0)),
+                cache_type=entry.get("Type", "unknown"),
+                in_use=entry.get("InUse", False),
+            )
+            for entry in cache_entries
+        )
 
     def remove(self, resource_type: ResourceType, resource_id: str) -> None:
         removers: dict[ResourceType, Any] = {

@@ -129,3 +129,25 @@ def test_marks_default_networks_as_protected_context() -> None:
 
     assert networks[0].default
     assert networks[0].container_ids == ()
+
+
+def test_lists_build_cache_when_api_supports_disk_usage() -> None:
+    client = Mock()
+    client.api.df.return_value = {
+        "BuildCache": [
+            {
+                "ID": "cache-123456789",
+                "Type": "regular",
+                "Description": "pip layer",
+                "CreatedAt": 1_772_841_600,
+                "Size": 8192,
+                "InUse": False,
+            }
+        ]
+    }
+
+    cache = DockerSdkGateway(client).list_build_cache()
+
+    assert cache[0].name == "pip layer"
+    assert cache[0].size_bytes == 8192
+    assert not cache[0].in_use
