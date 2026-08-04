@@ -20,6 +20,12 @@ class ContainerState(StrEnum):
     OTHER = "other"
 
 
+class DecisionStatus(StrEnum):
+    CANDIDATE = "candidate"
+    PROTECTED = "protected"
+    RETAINED = "retained"
+
+
 class DomainModel(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -114,3 +120,33 @@ class Inventory(DomainModel):
         )
         return sum(resource.size_bytes or 0 for resource in resources)
 
+
+class CleanupDecision(DomainModel):
+    resource_type: ResourceType
+    resource_id: str = Field(min_length=1)
+    resource_name: str = Field(min_length=1)
+    status: DecisionStatus
+    reasons: tuple[str, ...] = Field(min_length=1)
+    estimated_bytes: int | None = Field(default=None, ge=0)
+
+
+class CleanupPlan(DomainModel):
+    generated_at: datetime
+    decisions: tuple[CleanupDecision, ...]
+
+    @field_validator("generated_at")
+    @classmethod
+    def normalize_generated_at(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("generated_at must include timezone information")
+        return value.astimezone(UTC)
+
+    @property
+    def candidates(self) -> tuple[CleanupDecision, ...]:
+        return tuple(
+            decision for decision in self.decisions if decision.status == DecisionStatus.CANDIDATE
+        )
+
+    @property
+    def estimated_reclaimable_bytes(self) -> int:
+        return sum(decision.estimated_bytes or 0 for decision in self.candidates)

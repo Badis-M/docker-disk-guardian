@@ -4,8 +4,11 @@ import pytest
 from pydantic import ValidationError
 
 from docker_disk_guardian.models import (
+    CleanupDecision,
+    CleanupPlan,
     ContainerResource,
     ContainerState,
+    DecisionStatus,
     ImageResource,
     Inventory,
 )
@@ -54,3 +57,30 @@ def test_dangling_image_has_no_usable_tag() -> None:
         id="three", name="three", created_at=created_at, tags=("example:1",)
     ).dangling
 
+
+def test_plan_sums_candidate_estimates_only() -> None:
+    generated_at = datetime(2026, 4, 1, tzinfo=UTC)
+    plan = CleanupPlan(
+        generated_at=generated_at,
+        decisions=(
+            CleanupDecision(
+                resource_type="image",
+                resource_id="image-1",
+                resource_name="one",
+                status=DecisionStatus.CANDIDATE,
+                reasons=("unused",),
+                estimated_bytes=100,
+            ),
+            CleanupDecision(
+                resource_type="image",
+                resource_id="image-2",
+                resource_name="two",
+                status=DecisionStatus.PROTECTED,
+                reasons=("in use",),
+                estimated_bytes=200,
+            ),
+        ),
+    )
+
+    assert len(plan.candidates) == 1
+    assert plan.estimated_reclaimable_bytes == 100
