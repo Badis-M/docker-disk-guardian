@@ -5,7 +5,7 @@ from io import StringIO
 from rich.console import Console
 from rich.table import Table
 
-from docker_disk_guardian.models import Inventory, Resource
+from docker_disk_guardian.models import CleanupPlan, Inventory, Resource
 
 
 def format_bytes(value: int | None) -> str:
@@ -50,3 +50,29 @@ def render_inventory(inventory: Inventory, *, color: bool = True) -> str:
     console.print(f"Known total: {format_bytes(inventory.total_known_bytes)}")
     return output.getvalue()
 
+
+def render_plan(plan: CleanupPlan, *, color: bool = True) -> str:
+    table = Table(title="Docker Cleanup Plan")
+    table.add_column("Type")
+    table.add_column("Name")
+    table.add_column("Status")
+    table.add_column("Estimate", justify="right")
+    table.add_column("Reasons")
+    for decision in plan.decisions:
+        style = "green" if decision.status == "candidate" else "yellow"
+        table.add_row(
+            decision.resource_type.value,
+            decision.resource_name,
+            f"[{style}]{decision.status.value}[/{style}]" if color else decision.status.value,
+            format_bytes(decision.estimated_bytes),
+            "; ".join(decision.reasons),
+        )
+
+    output = StringIO()
+    console = Console(file=output, force_terminal=color, color_system="standard" if color else None)
+    console.print(table)
+    console.print(
+        f"Candidates: {len(plan.candidates)} | "
+        f"Estimated reclaimable: {format_bytes(plan.estimated_reclaimable_bytes)}"
+    )
+    return output.getvalue()
