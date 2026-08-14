@@ -74,3 +74,27 @@ def test_policy_validate_does_not_connect_to_docker(tmp_path: object) -> None:
     assert result.exit_code == 0
     assert result.stdout == "Policy is valid (version 1).\n"
     connect.assert_not_called()
+
+
+@patch("docker_disk_guardian.cli.DockerSdkGateway.connect")
+def test_plan_is_read_only_and_explains_decisions(connect: object) -> None:
+    now = datetime(2026, 3, 7, tzinfo=UTC)
+    gateway = FakeDockerGateway(
+        images=(
+            ImageResource(
+                id="image-1",
+                name="dangling",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+                size_bytes=1024,
+            ),
+        )
+    )
+    connect.return_value = gateway  # type: ignore[attr-defined]
+
+    result = runner.invoke(app, ["plan", "--format", "json"])
+
+    assert result.exit_code == 0
+    assert '"kind": "cleanup_plan"' in result.stdout
+    assert '"status": "candidate"' in result.stdout
+    assert gateway.removed == []
+    assert gateway.closed
