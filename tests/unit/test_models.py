@@ -9,6 +9,8 @@ from docker_disk_guardian.models import (
     ContainerResource,
     ContainerState,
     DecisionStatus,
+    ExecutionItem,
+    ExecutionResult,
     ImageResource,
     Inventory,
 )
@@ -84,3 +86,36 @@ def test_plan_sums_candidate_estimates_only() -> None:
 
     assert len(plan.candidates) == 1
     assert plan.estimated_reclaimable_bytes == 100
+
+
+def test_execution_result_counts_each_outcome() -> None:
+    now = datetime(2026, 4, 1, tzinfo=UTC)
+    result = ExecutionResult(
+        started_at=now,
+        completed_at=now,
+        items=(
+            ExecutionItem(
+                resource_type="image",
+                resource_id="one",
+                resource_name="one",
+                status="succeeded",
+                message="removed",
+            ),
+            ExecutionItem(
+                resource_type="image",
+                resource_id="two",
+                resource_name="two",
+                status="failed",
+                message="daemon error",
+            ),
+            ExecutionItem(
+                resource_type="build_cache",
+                resource_id="three",
+                resource_name="three",
+                status="skipped",
+                message="unsupported",
+            ),
+        ),
+    )
+
+    assert (result.succeeded, result.failed, result.skipped) == (1, 1, 1)

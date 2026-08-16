@@ -26,6 +26,12 @@ class DecisionStatus(StrEnum):
     RETAINED = "retained"
 
 
+class ExecutionStatus(StrEnum):
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+
+
 class DomainModel(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -150,3 +156,30 @@ class CleanupPlan(DomainModel):
     @property
     def estimated_reclaimable_bytes(self) -> int:
         return sum(decision.estimated_bytes or 0 for decision in self.candidates)
+
+
+class ExecutionItem(DomainModel):
+    resource_type: ResourceType
+    resource_id: str
+    resource_name: str
+    status: ExecutionStatus
+    message: str
+
+
+class ExecutionResult(DomainModel):
+    started_at: datetime
+    completed_at: datetime
+    items: tuple[ExecutionItem, ...]
+    interrupted: bool = False
+
+    @property
+    def succeeded(self) -> int:
+        return sum(item.status == ExecutionStatus.SUCCEEDED for item in self.items)
+
+    @property
+    def failed(self) -> int:
+        return sum(item.status == ExecutionStatus.FAILED for item in self.items)
+
+    @property
+    def skipped(self) -> int:
+        return sum(item.status == ExecutionStatus.SKIPPED for item in self.items)
