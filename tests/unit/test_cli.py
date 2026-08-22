@@ -98,3 +98,54 @@ def test_plan_is_read_only_and_explains_decisions(connect: object) -> None:
     assert '"status": "candidate"' in result.stdout
     assert gateway.removed == []
     assert gateway.closed
+
+
+@patch("docker_disk_guardian.cli.DockerSdkGateway.connect")
+def test_apply_requires_confirmation(connect: object, tmp_path: object) -> None:
+    from pathlib import Path
+
+    policy_path = Path(str(tmp_path)) / "policy.yaml"
+    policy_path.write_text("version: 1\n", encoding="utf-8")
+    gateway = FakeDockerGateway(
+        images=(
+            ImageResource(
+                id="image-1",
+                name="dangling",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        )
+    )
+    connect.return_value = gateway  # type: ignore[attr-defined]
+
+    result = runner.invoke(app, ["apply", "--policy", str(policy_path)], input="n\n")
+
+    assert result.exit_code == 1
+    assert gateway.removed == []
+    assert gateway.closed
+
+
+@patch("docker_disk_guardian.cli.DockerSdkGateway.connect")
+def test_apply_yes_removes_only_planned_candidate(connect: object, tmp_path: object) -> None:
+    from pathlib import Path
+
+    policy_path = Path(str(tmp_path)) / "policy.yaml"
+    policy_path.write_text("version: 1\n", encoding="utf-8")
+    gateway = FakeDockerGateway(
+        images=(
+            ImageResource(
+                id="image-1",
+                name="dangling",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        )
+    )
+    connect.return_value = gateway  # type: ignore[attr-defined]
+
+    result = runner.invoke(
+        app,
+        ["apply", "--policy", str(policy_path), "--yes"],
+    )
+
+    assert result.exit_code == 0
+    assert gateway.removed == [(gateway.images[0].resource_type, "image-1")]
+    assert "Execution summary: 1 succeeded" in result.stdout

@@ -9,6 +9,7 @@ import typer
 from docker_disk_guardian import __version__
 from docker_disk_guardian.config import CleanupPolicy, load_policy
 from docker_disk_guardian.docker_client import DockerSdkGateway
+from docker_disk_guardian.executor import CleanupExecutor
 from docker_disk_guardian.errors import GuardianError
 from docker_disk_guardian.inventory import ALL_RESOURCE_TYPES, InventoryService
 from docker_disk_guardian.models import ResourceType
@@ -141,6 +142,58 @@ def plan_command(
         else:
             report = render_table_plan(plan, color=output is None)
         _emit(report, output)
+    except GuardianError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=int(exc.exit_code)) from exc
+    finally:
+        if gateway is not None:
+            gateway.close()
+
+
+@app.command("apply")
+def apply_command(
+    policy_path: Annotated[
+        Path,
+        typer.Option("--policy", help="Reviewed YAML cleanup policy.", exists=True, dir_okay=False),
+    ],
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", help="Skip interactive confirmation for automation."),
+    ] = False,
+) -> None:
+    """Apply a reviewed cleanup policy after explicit confirmation."""
+    gateway: DockerSdkGateway | None = None
+    try:
+        policy = load_policy(policy_path)
+        gateway = DockerSdkGateway.connect()
+        service = InventoryService(gateway)
+        requested_plan = CleanupPlanner(policy).create_plan(service.collect())
+        typer.echo(render_table_plan(requested_plan, color=True), nl=False)
+        if not requested_plan.candidates:
+            typer.echo("No cleanup candidates. Nothing was changed.")
+            return
+        if not yes:
+            typer.confirm(
+                f"Remove {len(requested_plan.candidates)} approved resource(s)?",
+                abort=True,
+            )
+
+        # Refresh state after confirmation to close the review-to-execution gap.
+        current_inventory = service.collect()
+        result = CleanupExecutor(gateway, policy).execute(requested_plan, current_inventory)
+        for item in result.items:
+            typer.echo(
+                f"{item.status.value}: {item.resource_type.value} "
+                f"{item.resource_name} ({item.message})"
+            )
+        typer.echo(
+            f"Execution summary: {result.succeeded} succeeded, "
+            f"{result.failed} failed, {result.skipped} skipped."
+        )
+        if result.interrupted:
+            raise typer.Exit(code=130)
+        if result.failed:
+            raise typer.Exit(code=4)
     except GuardianError as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=int(exc.exit_code)) from exc
