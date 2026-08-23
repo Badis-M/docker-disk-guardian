@@ -9,7 +9,7 @@ import typer
 from docker_disk_guardian import __version__
 from docker_disk_guardian.config import CleanupPolicy, load_policy
 from docker_disk_guardian.docker_client import DockerSdkGateway
-from docker_disk_guardian.executor import CleanupExecutor
+from docker_disk_guardian.executor import CleanupExecutor, SignalInterruption
 from docker_disk_guardian.errors import GuardianError
 from docker_disk_guardian.inventory import ALL_RESOURCE_TYPES, InventoryService
 from docker_disk_guardian.models import ResourceType
@@ -180,7 +180,12 @@ def apply_command(
 
         # Refresh state after confirmation to close the review-to-execution gap.
         current_inventory = service.collect()
-        result = CleanupExecutor(gateway, policy).execute(requested_plan, current_inventory)
+        with SignalInterruption() as interruption:
+            result = CleanupExecutor(
+                gateway,
+                policy,
+                should_stop=interruption.requested,
+            ).execute(requested_plan, current_inventory)
         for item in result.items:
             typer.echo(
                 f"{item.status.value}: {item.resource_type.value} "

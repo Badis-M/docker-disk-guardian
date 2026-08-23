@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from docker_disk_guardian.config import CleanupPolicy
-from docker_disk_guardian.executor import CleanupExecutor
+from docker_disk_guardian.executor import CleanupExecutor, SignalInterruption
 from docker_disk_guardian.models import (
     CleanupDecision,
     CleanupPlan,
@@ -124,3 +124,11 @@ def test_interruption_stops_scheduling_new_deletions() -> None:
     assert result.interrupted
     assert result.items == ()
     assert gateway.removed == []
+
+
+def test_signal_interruption_is_cooperative() -> None:
+    interruption = SignalInterruption()
+
+    assert not interruption.requested()
+    interruption.request()
+    assert interruption.requested()

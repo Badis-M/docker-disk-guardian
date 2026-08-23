@@ -2,6 +2,9 @@
 
 from collections.abc import Callable
 from datetime import UTC, datetime
+from types import FrameType
+import signal
+from threading import Event
 
 from docker_disk_guardian.config import CleanupPolicy
 from docker_disk_guardian.models import (
@@ -14,6 +17,32 @@ from docker_disk_guardian.models import (
 )
 from docker_disk_guardian.planner import CleanupPlanner
 from docker_disk_guardian.ports import DockerGateway
+
+
+class SignalInterruption:
+    """Convert SIGINT into a cooperative stop between deletion operations."""
+
+    def __init__(self) -> None:
+        self._event = Event()
+        self._previous: signal.Handlers | None = None
+
+    def __enter__(self) -> "SignalInterruption":
+        self._previous = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, self._handle)
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        if self._previous is not None:
+            signal.signal(signal.SIGINT, self._previous)
+
+    def requested(self) -> bool:
+        return self._event.is_set()
+
+    def request(self) -> None:
+        self._event.set()
+
+    def _handle(self, _signum: int, _frame: FrameType | None) -> None:
+        self.request()
 
 
 class CleanupExecutor:
@@ -98,4 +127,3 @@ class CleanupExecutor:
             items=tuple(items),
             interrupted=interrupted,
         )
-
