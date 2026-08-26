@@ -50,6 +50,9 @@ packages = ["src/docker_disk_guardian"]
 [tool.pytest.ini_options]
 addopts = "--strict-markers --strict-config"
 testpaths = ["tests"]
+markers = [
+  "integration: tests requiring an explicitly enabled local Docker daemon",
+]
 
 [tool.ruff]
 line-length = 100
