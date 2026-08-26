@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import re
+from datetime import UTC, datetime
 from typing import Any
 
 import docker
@@ -42,8 +42,8 @@ class DockerSdkGateway:
 
     def list_containers(self) -> tuple[ContainerResource, ...]:
         resources: list[ContainerResource] = []
-        for summary in self._client.api.containers(all=True):
-            details = self._client.api.inspect_container(summary["Id"], size=True)
+        for summary in self._client.api.containers(all=True, size=True):
+            details = self._client.api.inspect_container(summary["Id"])
             state_data = details.get("State", {})
             status = state_data.get("Status", summary.get("State", "unknown"))
             mounts = details.get("Mounts", [])
@@ -54,7 +54,7 @@ class DockerSdkGateway:
                     id=summary["Id"],
                     name=str(names[0]).lstrip("/"),
                     created_at=self._parse_datetime(details.get("Created", summary["Created"])),
-                    size_bytes=details.get("SizeRw"),
+                    size_bytes=summary.get("SizeRw", details.get("SizeRw")),
                     labels=details.get("Config", {}).get("Labels") or summary.get("Labels") or {},
                     state=self._container_state(status),
                     image_id=details.get("Image", summary.get("ImageID", "unknown")),
@@ -79,17 +79,18 @@ class DockerSdkGateway:
         resources: list[ImageResource] = []
         for image in self._client.images.list(all=True):
             attributes = image.attrs
+            image_id = image.id or attributes["Id"]
             tags = tuple(sorted(attributes.get("RepoTags") or ()))
             resources.append(
                 ImageResource(
-                    id=image.id,
-                    name=tags[0] if tags else image.short_id,
+                    id=image_id,
+                    name=tags[0] if tags else (image.short_id or image_id[:12]),
                     created_at=self._parse_datetime(attributes["Created"]),
                     size_bytes=attributes.get("Size"),
                     labels=attributes.get("Config", {}).get("Labels") or {},
                     tags=tags,
                     digests=tuple(sorted(attributes.get("RepoDigests") or ())),
-                    container_ids=tuple(sorted(references.get(image.id, ()))),
+                    container_ids=tuple(sorted(references.get(image_id, ()))),
                 )
             )
         return tuple(resources)
@@ -127,10 +128,11 @@ class DockerSdkGateway:
         resources: list[NetworkResource] = []
         for network in self._client.networks.list():
             attributes = network.attrs
-            name = attributes.get("Name", network.name)
+            name = attributes.get("Name") or network.name or "unknown"
+            network_id = attributes.get("Id") or network.id or name
             resources.append(
                 NetworkResource(
-                    id=attributes.get("Id", network.id),
+                    id=network_id,
                     name=name,
                     created_at=self._parse_datetime(
                         attributes.get("Created", "1970-01-01T00:00:00Z")

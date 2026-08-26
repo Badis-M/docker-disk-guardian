@@ -23,4 +23,3 @@ def test_collection_never_calls_remove() -> None:
     InventoryService(gateway).collect()
 
     assert gateway.removed == []
-

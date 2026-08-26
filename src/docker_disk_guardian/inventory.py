@@ -34,4 +34,3 @@ class InventoryService:
                 self._gateway.list_build_cache() if ResourceType.BUILD_CACHE in selected else ()
             ),
         )
-

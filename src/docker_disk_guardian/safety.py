@@ -52,4 +52,3 @@ def protection_reasons(resource: Resource, policy: CleanupPolicy) -> tuple[str, 
 def _protected_tag(tag: str, patterns: tuple[str, ...]) -> bool:
     tag_name = tag.rsplit(":", maxsplit=1)[-1]
     return any(fnmatch(tag, pattern) or fnmatch(tag_name, pattern) for pattern in patterns)
-

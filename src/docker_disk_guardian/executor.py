@@ -1,10 +1,11 @@
 """Cleanup execution with policy revalidation immediately before deletion."""
 
+import signal
 from collections.abc import Callable
 from datetime import UTC, datetime
-from types import FrameType
-import signal
 from threading import Event
+from types import FrameType
+from typing import Any
 
 from docker_disk_guardian.config import CleanupPolicy
 from docker_disk_guardian.models import (
@@ -24,7 +25,7 @@ class SignalInterruption:
 
     def __init__(self) -> None:
         self._event = Event()
-        self._previous: signal.Handlers | None = None
+        self._previous: Any = None
 
     def __enter__(self) -> "SignalInterruption":
         self._previous = signal.getsignal(signal.SIGINT)

@@ -9,17 +9,17 @@ import typer
 from docker_disk_guardian import __version__
 from docker_disk_guardian.config import CleanupPolicy, load_policy
 from docker_disk_guardian.docker_client import DockerSdkGateway
-from docker_disk_guardian.executor import CleanupExecutor, SignalInterruption
 from docker_disk_guardian.errors import GuardianError
+from docker_disk_guardian.executor import CleanupExecutor, SignalInterruption
 from docker_disk_guardian.inventory import ALL_RESOURCE_TYPES, InventoryService
 from docker_disk_guardian.models import ResourceType
+from docker_disk_guardian.planner import CleanupPlanner
 from docker_disk_guardian.reporters.json import render_inventory as render_json_inventory
 from docker_disk_guardian.reporters.json import render_plan as render_json_plan
 from docker_disk_guardian.reporters.markdown import render_inventory as render_markdown_inventory
 from docker_disk_guardian.reporters.markdown import render_plan as render_markdown_plan
 from docker_disk_guardian.reporters.table import render_inventory as render_table_inventory
 from docker_disk_guardian.reporters.table import render_plan as render_table_plan
-from docker_disk_guardian.planner import CleanupPlanner
 
 app = typer.Typer(
     name="docker-disk-guardian",

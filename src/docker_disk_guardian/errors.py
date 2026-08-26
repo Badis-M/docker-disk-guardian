@@ -33,4 +33,3 @@ class ExecutionError(GuardianError):
     """Raised when cleanup cannot be completed safely."""
 
     exit_code = ExitCode.EXECUTION_FAILED
-

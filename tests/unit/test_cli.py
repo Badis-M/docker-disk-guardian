@@ -78,7 +78,6 @@ def test_policy_validate_does_not_connect_to_docker(tmp_path: object) -> None:
 
 @patch("docker_disk_guardian.cli.DockerSdkGateway.connect")
 def test_plan_is_read_only_and_explains_decisions(connect: object) -> None:
-    now = datetime(2026, 3, 7, tzinfo=UTC)
     gateway = FakeDockerGateway(
         images=(
             ImageResource(

@@ -36,4 +36,3 @@ def test_markdown_plan_contains_reasons() -> None:
 
     assert "container is running" in report
     assert "Candidates: **0**" in report
-

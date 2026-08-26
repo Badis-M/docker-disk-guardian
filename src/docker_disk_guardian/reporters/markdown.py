@@ -58,4 +58,3 @@ def render_plan(plan: CleanupPlan) -> str:
         ]
     )
     return "\n".join(lines)
-

@@ -97,9 +97,7 @@ def test_named_volume_requires_explicit_policy_opt_in() -> None:
 
 def test_custom_network_requires_explicit_policy_opt_in() -> None:
     network = NetworkResource(id="network-1", name="frontend", created_at=NOW)
-    policy = CleanupPolicy.model_validate(
-        {"networks": {"allow_custom_network_deletion": True}}
-    )
+    policy = CleanupPolicy.model_validate({"networks": {"allow_custom_network_deletion": True}})
 
     plan = CleanupPlanner(policy, clock=lambda: NOW).create_plan(
         Inventory(collected_at=NOW, networks=(network,))

@@ -59,7 +59,7 @@ def test_lists_typed_containers() -> None:
     assert containers[0].size_bytes == 1024
     assert containers[0].volume_names == ("web-data",)
     assert containers[0].network_names == ("frontend",)
-    client.api.inspect_container.assert_called_once_with("container-1", size=True)
+    client.api.inspect_container.assert_called_once_with("container-1")
 
 
 def test_lists_images_with_container_references() -> None:

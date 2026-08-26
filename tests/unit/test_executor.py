@@ -41,9 +41,9 @@ def test_executes_candidate_that_is_still_safe() -> None:
     inventory = Inventory(collected_at=NOW, containers=(container,))
     gateway = FakeDockerGateway()
 
-    result = CleanupExecutor(
-        gateway, CleanupPolicy(), clock=lambda: NOW
-    ).execute(_candidate_plan(), inventory)
+    result = CleanupExecutor(gateway, CleanupPolicy(), clock=lambda: NOW).execute(
+        _candidate_plan(), inventory
+    )
 
     assert gateway.removed == [(container.resource_type, "container-1")]
     assert result.items[0].status == ExecutionStatus.SUCCEEDED
@@ -60,9 +60,9 @@ def test_revalidation_blocks_container_that_started_running() -> None:
     inventory = Inventory(collected_at=NOW, containers=(container,))
     gateway = FakeDockerGateway()
 
-    result = CleanupExecutor(
-        gateway, CleanupPolicy(), clock=lambda: NOW
-    ).execute(_candidate_plan(), inventory)
+    result = CleanupExecutor(gateway, CleanupPolicy(), clock=lambda: NOW).execute(
+        _candidate_plan(), inventory
+    )
 
     assert gateway.removed == []
     assert result.items[0].status == ExecutionStatus.SKIPPED

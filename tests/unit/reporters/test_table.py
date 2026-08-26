@@ -14,7 +14,9 @@ def test_renders_stable_inventory_table() -> None:
     now = datetime(2026, 3, 7, tzinfo=UTC)
     inventory = Inventory(
         collected_at=now,
-        images=(ImageResource(id="image-123456789", name="example:1", created_at=now, size_bytes=1024),),
+        images=(
+            ImageResource(id="image-123456789", name="example:1", created_at=now, size_bytes=1024),
+        ),
     )
 
     report = render_inventory(inventory, color=False)

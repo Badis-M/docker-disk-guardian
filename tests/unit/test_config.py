@@ -58,7 +58,7 @@ def test_reports_field_path_for_invalid_policy(tmp_path: object) -> None:
     path = Path(str(tmp_path)) / "policy.yaml"
     path.write_text("retention:\n  stopped_containers: -2h\n", encoding="utf-8")
 
-    with pytest.raises(ConfigurationError, match="retention.stopped_containers"):
+    with pytest.raises(ConfigurationError, match=r"retention\.stopped_containers"):
         load_policy(path)
 
 

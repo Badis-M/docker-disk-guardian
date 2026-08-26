@@ -39,12 +39,12 @@ class CleanupPlanner:
             *(self._network_decision(item) for item in inventory.networks),
             *(self._cache_decision(item, now) for item in inventory.build_cache),
         ]
-        decisions.sort(key=lambda item: (item.resource_type.value, item.resource_name, item.resource_id))
+        decisions.sort(
+            key=lambda item: (item.resource_type.value, item.resource_name, item.resource_id)
+        )
         return CleanupPlan(generated_at=now, decisions=tuple(decisions))
 
-    def _container_decision(
-        self, container: ContainerResource, now: datetime
-    ) -> CleanupDecision:
+    def _container_decision(self, container: ContainerResource, now: datetime) -> CleanupDecision:
         protected = protection_reasons(container, self._policy)
         if protected:
             return self._decision(container, DecisionStatus.PROTECTED, protected)
@@ -102,9 +102,7 @@ class CleanupPlanner:
             ("unused custom network deletion is allowed by policy",),
         )
 
-    def _cache_decision(
-        self, cache: BuildCacheResource, now: datetime
-    ) -> CleanupDecision:
+    def _cache_decision(self, cache: BuildCacheResource, now: datetime) -> CleanupDecision:
         protected = protection_reasons(cache, self._policy)
         if protected:
             return self._decision(cache, DecisionStatus.PROTECTED, protected)

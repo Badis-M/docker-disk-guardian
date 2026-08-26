@@ -37,6 +37,7 @@ class DomainModel(BaseModel):
 
 
 class Resource(DomainModel):
+    resource_type: ResourceType
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     created_at: datetime

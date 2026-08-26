@@ -50,9 +50,6 @@ def test_named_volume_is_protected_by_default() -> None:
 
 def test_default_network_cannot_be_unprotected_by_policy() -> None:
     network = NetworkResource(id="bridge", name="bridge", created_at=NOW, default=True)
-    policy = CleanupPolicy.model_validate(
-        {"networks": {"allow_custom_network_deletion": True}}
-    )
+    policy = CleanupPolicy.model_validate({"networks": {"allow_custom_network_deletion": True}})
 
     assert "Docker default network is always protected" in protection_reasons(network, policy)
-
