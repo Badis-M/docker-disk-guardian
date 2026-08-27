@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "docker-disk-guardian"
+version = "0.1.0"
+description = "A safety-first CLI for understanding and cleaning Docker disk usage."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Badis Merakchi" }]
+keywords = ["docker", "disk", "cleanup", "cli", "devops"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: System :: Systems Administration",
+]
+dependencies = [
+  "docker>=7.1,<8",
+  "pydantic>=2.10,<3",
+  "PyYAML>=6.0,<7",
+  "rich>=13.9,<15",
+  "typer>=0.15,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.14,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.9,<1",
+  "types-PyYAML>=6.0.12",
+]
+
+[project.scripts]
+docker-disk-guardian = "docker_disk_guardian.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/Badis-M/docker-disk-guardian"
+Repository = "https://github.com/Badis-M/docker-disk-guardian"
+Issues = "https://github.com/Badis-M/docker-disk-guardian/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/docker_disk_guardian"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["docker_disk_guardian"]
+
