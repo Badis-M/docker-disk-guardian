@@ -5,7 +5,7 @@ from docker.errors import DockerException
 
 from docker_disk_guardian.docker_client import DockerSdkGateway
 from docker_disk_guardian.errors import DockerUnavailableError
-from docker_disk_guardian.models import ContainerState
+from docker_disk_guardian.models import ContainerState, ResourceType
 
 
 @patch("docker_disk_guardian.docker_client.docker.from_env")
@@ -151,3 +151,14 @@ def test_lists_build_cache_when_api_supports_disk_usage() -> None:
     assert cache[0].name == "pip layer"
     assert cache[0].size_bytes == 8192
     assert not cache[0].in_use
+
+
+def test_remove_resolves_only_requested_resource_endpoint() -> None:
+    client = Mock()
+
+    DockerSdkGateway(client).remove(ResourceType.IMAGE, "image-1")
+
+    client.images.remove.assert_called_once_with("image-1")
+    client.containers.get.assert_not_called()
+    client.volumes.get.assert_not_called()
+    client.networks.get.assert_not_called()

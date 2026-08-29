@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
-from typing import Any
 
 import docker
 from docker.client import DockerClient
@@ -165,17 +164,16 @@ class DockerSdkGateway:
         )
 
     def remove(self, resource_type: ResourceType, resource_id: str) -> None:
-        removers: dict[ResourceType, Any] = {
-            ResourceType.CONTAINER: self._client.containers.get(resource_id).remove,
-            ResourceType.IMAGE: lambda: self._client.images.remove(resource_id),
-            ResourceType.VOLUME: self._client.volumes.get(resource_id).remove,
-            ResourceType.NETWORK: self._client.networks.get(resource_id).remove,
-        }
-        try:
-            remover = removers[resource_type]
-        except KeyError as exc:
-            raise ValueError(f"Unsupported removal type: {resource_type}") from exc
-        remover()
+        if resource_type == ResourceType.CONTAINER:
+            self._client.containers.get(resource_id).remove()
+        elif resource_type == ResourceType.IMAGE:
+            self._client.images.remove(resource_id)
+        elif resource_type == ResourceType.VOLUME:
+            self._client.volumes.get(resource_id).remove()
+        elif resource_type == ResourceType.NETWORK:
+            self._client.networks.get(resource_id).remove()
+        else:
+            raise ValueError(f"Unsupported removal type: {resource_type}")
 
     def close(self) -> None:
         self._client.close()
