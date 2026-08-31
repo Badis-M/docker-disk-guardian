@@ -25,6 +25,30 @@ def test_short_version_command() -> None:
 
 
 @patch("docker_disk_guardian.cli.DockerSdkGateway.connect")
+def test_doctor_reports_available_docker(connect: object) -> None:
+    gateway = FakeDockerGateway()
+    connect.return_value = gateway  # type: ignore[attr-defined]
+
+    result = runner.invoke(app, ["doctor"])
+
+    assert result.exit_code == 0
+    assert result.stdout == "Docker connection: OK\n"
+    assert gateway.closed
+
+
+@patch("docker_disk_guardian.cli.DockerSdkGateway.connect")
+def test_doctor_reports_unavailable_docker(connect: object) -> None:
+    from docker_disk_guardian.errors import DockerUnavailableError
+
+    connect.side_effect = DockerUnavailableError("daemon unavailable")  # type: ignore[attr-defined]
+
+    result = runner.invoke(app, ["doctor"])
+
+    assert result.exit_code == 3
+    assert "Docker connection: FAILED (daemon unavailable)" in result.output
+
+
+@patch("docker_disk_guardian.cli.DockerSdkGateway.connect")
 def test_inspect_renders_json_without_removing_resources(connect: object) -> None:
     now = datetime(2026, 3, 7, tzinfo=UTC)
     gateway = FakeDockerGateway(

@@ -42,6 +42,12 @@ make check
 
 ## Usage
 
+Check that Docker is reachable before running an inventory:
+
+```bash
+docker-disk-guardian doctor
+```
+
 Inspect all supported resources:
 
 ```bash

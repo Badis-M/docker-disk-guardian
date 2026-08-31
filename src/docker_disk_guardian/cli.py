@@ -58,6 +58,21 @@ def version(
     typer.echo(value)
 
 
+@app.command()
+def doctor() -> None:
+    """Check whether the local Docker daemon is reachable."""
+    gateway: DockerSdkGateway | None = None
+    try:
+        gateway = DockerSdkGateway.connect()
+        typer.echo("Docker connection: OK")
+    except GuardianError as exc:
+        typer.echo(f"Docker connection: FAILED ({exc})", err=True)
+        raise typer.Exit(code=int(exc.exit_code)) from exc
+    finally:
+        if gateway is not None:
+            gateway.close()
+
+
 @app.command("inspect")
 def inspect_command(
     output_format: Annotated[

@@ -13,5 +13,5 @@ build/
 .env
 .DS_Store
 *-context.md
+project-guide-fr.md
 reports/
-
