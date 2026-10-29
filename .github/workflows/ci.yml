@@ -80,7 +80,7 @@ jobs:
             prefix="$RUNNER_TEMP/installed-$(basename "$artifact")"
             uv venv "$prefix" --python '3.12'
             uv pip install --python "$prefix/bin/python" --require-hashes -r "$RUNNER_TEMP/runtime.txt"
-            uv pip install --python "$prefix/bin/python" --no-deps --no-build-isolation --no-build --only-binary :all: dist/*.whl
+            uv pip install --python "$prefix/bin/python" --no-deps --only-binary :all: dist/*.whl
             if [[ "$artifact" == *.tar.gz ]]; then
               mkdir "$RUNNER_TEMP/sdist"
               tar -xzf "$artifact" -C "$RUNNER_TEMP/sdist"

@@ -7,7 +7,7 @@ Prepared version: `1.1.0`. No tag or release was created by the 2026-10-29 prepa
 Pull requests and pushes to `main` run `.github/workflows/ci.yml`. The same workflow is reusable by the manual release workflow, with the requested tag as its checkout reference.
 Actions use verified immutable SHAs. Repository access is read-only during validation, checkout credentials are not persisted, and job timeouts are explicit.
 
-A locally validated workflow still needs its first remote execution. Branch protection rules are managed separately; a workflow file alone does not make checks mandatory for merging.
+The first remote attempt and its corrective follow-up are recorded in `VALIDATION.md`. A successful remote run of the corrected revision is still required before release. Branch protection rules are managed separately; a workflow file alone does not make checks mandatory for merging.
 
 ## Release authorization
 

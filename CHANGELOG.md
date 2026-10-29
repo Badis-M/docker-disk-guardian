@@ -7,6 +7,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Remove conflicting uv wheel-install flags while retaining binary-only, dependency-free installation.
+
 ## [1.1.0] - 2026-10-29
 
 ### Added

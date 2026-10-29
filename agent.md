@@ -1,7 +1,7 @@
 # Docker Disk Guardian — guide de travail des agents
 
 État documentaire : 2026-10-29. Version préparée : `1.1.0`, non publiée.
-Référence de départ de cette itération : `96d10ad88714fe27afc1df9b700e2996a33fa4a6` ; les changements de cette itération sont encore locaux et non commités lors de la rédaction.
+Référence du suivi CI : `e79cef3cd2b425139bc97b45c18abd1815753e26`. La préparation précédente a été commitée et poussée par l’utilisateur ; les correctifs CI décrits ci-dessous restent locaux et non commités.
 
 ## Reprendre le contexte
 
@@ -34,3 +34,9 @@ Ne lancer les intégrations qu'avec `DDG_RUN_INTEGRATION=1` dans un moteur jetab
 La concurrence entre inventaire et suppression et les références réseau nécessitent encore des preuves complémentaires. Ne pas affirmer une absence absolue de risque de perte de données.
 
 Contrôle de développement : `make check coverage` après `uv sync --locked --extra dev --group build --group security --python 3.12`. Ces cibles excluent les intégrations Docker.
+
+## Suivi CI — 2026-10-29
+
+Les jobs qualité Python 3.12/3.13 et sécurité ont réussi. Les deux tests d’intégration Docker ont réellement réussi sur le runner jetable (2 passed, 78 deselected). Le job package a échoué sur les mêmes options uv incompatibles.
+
+Retrait de `--no-build` et de l’option de build isolation inutile, en conservant `--only-binary :all:` et `--no-deps` pour installer le wheel. Voir `docs/VALIDATION.md` pour la preuve distante et les vérifications locales. Une nouvelle CI après push doit confirmer le correctif ; aucune publication n’est autorisée implicitement.
