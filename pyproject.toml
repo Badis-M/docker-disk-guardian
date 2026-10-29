@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "docker-disk-guardian"
-version = "1.0.0"
+version = "1.1.0"
 description = "A safety-first CLI for understanding and cleaning Docker disk usage."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -45,6 +45,7 @@ Repository = "https://github.com/Badis-M/docker-disk-guardian"
 Issues = "https://github.com/Badis-M/docker-disk-guardian/issues"
 
 [tool.hatch.build.targets.wheel]
+core-metadata-version = "2.4"
 packages = ["src/docker_disk_guardian"]
 
 [tool.pytest.ini_options]
@@ -65,3 +66,10 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 python_version = "3.12"
 strict = true
 packages = ["docker_disk_guardian"]
+
+[dependency-groups]
+build = ["build>=1.2,<2", "hatchling>=1.27", "twine>=6,<7"]
+security = ["pip-audit>=2.9,<3"]
+
+[tool.hatch.build.targets.sdist]
+core-metadata-version = "2.4"

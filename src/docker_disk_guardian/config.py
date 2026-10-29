@@ -1,6 +1,8 @@
 """Strict cleanup policy models and duration parsing."""
 
+import os
 import re
+import stat
 from datetime import timedelta
 from pathlib import Path
 from typing import Annotated, Literal
@@ -32,7 +34,10 @@ def parse_duration(value: object) -> timedelta:
     if match is None:
         raise ValueError("duration must be a positive integer followed by s, m, h, d, or w")
     seconds = int(match.group("amount")) * _DURATION_FACTORS[match.group("unit")]
-    return timedelta(seconds=seconds)
+    try:
+        return timedelta(seconds=seconds)
+    except OverflowError as exc:
+        raise ValueError("duration exceeds the supported range") from exc
 
 
 Duration = Annotated[timedelta, BeforeValidator(parse_duration)]
@@ -77,17 +82,27 @@ class CleanupPolicy(PolicyModel):
 def load_policy(path: Path) -> CleanupPolicy:
     """Load a bounded YAML document and validate every field."""
     try:
-        size = path.stat().st_size
-        if size > _MAX_POLICY_BYTES:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+        with os.fdopen(descriptor, "rb") as handle:
+            if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+                raise ConfigurationError("Policy path must be a regular file, not a special file.")
+            raw = handle.read(_MAX_POLICY_BYTES + 1)
+        if len(raw) > _MAX_POLICY_BYTES:
             raise ConfigurationError("Policy file exceeds the 1 MiB safety limit.")
-        content = path.read_text(encoding="utf-8")
+        content = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ConfigurationError("Policy file must be valid UTF-8.") from exc
     except OSError as exc:
-        raise ConfigurationError(f"Cannot read policy file '{path}': {exc}") from exc
+        raise ConfigurationError(
+            "Cannot read policy file; use a readable regular file, not a symlink."
+        ) from exc
 
     try:
         document = yaml.safe_load(content)
+    except RecursionError as exc:
+        raise ConfigurationError("Policy YAML nesting exceeds safe parser depth.") from exc
     except yaml.YAMLError as exc:
-        raise ConfigurationError(f"Invalid YAML in policy '{path}': {exc}") from exc
+        raise ConfigurationError("Invalid YAML in policy; use a valid YAML mapping.") from exc
     if document is None:
         document = {}
     if not isinstance(document, dict):

@@ -15,3 +15,6 @@ build/
 *-context.md
 project-guide-fr.md
 reports/
+
+# Local French project guide; never stage this file.
+/contexte.md

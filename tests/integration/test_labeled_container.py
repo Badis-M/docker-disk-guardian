@@ -21,14 +21,17 @@ def test_inventory_collects_only_created_labeled_fixture() -> None:
     client = docker.from_env()
     fixture_id = uuid4().hex
     label = {"docker-disk-guardian.test-id": fixture_id}
+    image = os.getenv("DDG_TEST_IMAGE", "busybox:1.36")
     container = None
     try:
         try:
-            client.images.get("busybox:1.36")
+            client.images.get(image)
         except ImageNotFound:
-            pytest.skip("busybox:1.36 is not available locally; integration tests never auto-pull")
+            pytest.fail(
+                "The explicitly prepared fixture image is absent; no automatic pull is allowed"
+            )
         container = client.containers.create(
-            "busybox:1.36",
+            image,
             command=["sh", "-c", "exit 0"],
             name=f"ddg-test-{fixture_id[:12]}",
             labels=label,

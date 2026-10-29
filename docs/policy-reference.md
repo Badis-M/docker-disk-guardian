@@ -52,7 +52,11 @@ protection.
 
 ## Destructive opt-ins
 
-Named volumes and custom networks are protected until their matching opt-in is `true`. Build cache
+All volumes discovered by the SDK adapter are conservatively treated as named, even when the name looks automatically generated. Their deletion and custom-network deletion require the matching opt-in to be `true`. Build cache
 can be classified as a candidate when enabled, but V1 reports it as skipped during execution because
 targeted deletion cannot be guaranteed by the Docker prune API.
 
+
+## Policy input boundary
+
+Policies must be readable regular UTF-8 files, at most 1 MiB. Symlinks and special files are rejected; reads are bounded and FIFOs do not block validation. Excessive parser nesting and duration overflow produce configuration errors. No raw policy body is included in error messages.

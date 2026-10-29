@@ -14,14 +14,14 @@ def test_version_command() -> None:
     result = runner.invoke(app, ["version"])
 
     assert result.exit_code == 0
-    assert result.stdout == "docker-disk-guardian 1.0.0\n"
+    assert result.stdout == "docker-disk-guardian 1.1.0\n"
 
 
 def test_short_version_command() -> None:
     result = runner.invoke(app, ["version", "--short"])
 
     assert result.exit_code == 0
-    assert result.stdout == "1.0.0\n"
+    assert result.stdout == "1.1.0\n"
 
 
 @patch("docker_disk_guardian.cli.DockerSdkGateway.connect")
@@ -172,3 +172,21 @@ def test_apply_yes_removes_only_planned_candidate(connect: object, tmp_path: obj
     assert result.exit_code == 0
     assert gateway.removed == [(gateway.images[0].resource_type, "image-1")]
     assert "Execution summary: 1 succeeded" in result.stdout
+
+
+@patch("docker_disk_guardian.cli.DockerSdkGateway.connect")
+def test_collection_failure_returns_stable_exit_code(connect: object) -> None:
+    from unittest.mock import Mock
+
+    from docker.errors import DockerException
+
+    from docker_disk_guardian.docker_client import DockerSdkGateway
+
+    client = Mock()
+    client.api.containers.side_effect = DockerException("private daemon detail")
+    connect.return_value = DockerSdkGateway(client)  # type: ignore[attr-defined]
+    result = runner.invoke(app, ["inspect", "--include", "container"])
+    assert result.exit_code == 3
+    assert "inventory could not be collected" in result.output
+    assert "private daemon detail" not in result.output
+    client.close.assert_called_once()

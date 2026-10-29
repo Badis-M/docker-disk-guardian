@@ -40,7 +40,17 @@ scheduled, and completed results remain visible.
 
 ## Integration-test ownership
 
-Integration tests are disabled by default. When explicitly enabled, they use a unique
-`docker-disk-guardian.test-id` label and remove only the container created by that test. They never
-pull images automatically or prune user resources.
+Integration tests are disabled by default locally. The CI integration job prepares a digest-pinned
+image on a disposable runner, then explicitly enables the tests. Tests use unique UUID names and
+`docker-disk-guardian.test-id` labels and remove only their own container/volume objects. They never
+pull images automatically or prune unrelated resources. Inventory, default volume protection and
+explicitly opted-in targeted volume deletion are covered; full concurrent-daemon behavior is not.
 
+
+## Volume provenance and remaining races
+
+Docker volume names do not establish whether a user named the volume. The SDK adapter therefore reports every discovered volume as non-anonymous, including 64-character hexadecimal names. Default policy protects these volumes; deletion requires the existing named-volume opt-in and all other checks. The `anonymous` model field remains for compatibility, not as a name-based safety assertion.
+
+The post-confirmation inventory narrows, but does not eliminate, races before individual removal calls. Network reference completeness, particularly stopped-container associations, still needs focused Docker integration evidence. Removing resources has no undo operation.
+
+Expected SDK inventory failures are translated to exit code 3 with an actionable message instead of leaking raw daemon responses.

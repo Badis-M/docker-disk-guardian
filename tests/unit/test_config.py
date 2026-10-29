@@ -70,3 +70,57 @@ def test_rejects_non_mapping_policy(tmp_path: object) -> None:
 
     with pytest.raises(ConfigurationError, match="YAML mapping"):
         load_policy(path)
+
+
+def test_duration_overflow_is_a_validation_error() -> None:
+    with pytest.raises(ValidationError, match="supported range"):
+        CleanupPolicy.model_validate(
+            {"retention": {"stopped_containers": "999999999999999999999w"}}
+        )
+
+
+def test_policy_rejects_invalid_utf8(tmp_path) -> None:
+    path = tmp_path / "policy.yaml"
+    path.write_bytes(b"\xff")
+    with pytest.raises(ConfigurationError, match="UTF-8"):
+        load_policy(path)
+
+
+def test_policy_rejects_symlinks(tmp_path) -> None:
+    source = tmp_path / "source.yaml"
+    source.write_text("version: 1\n")
+    link = tmp_path / "policy.yaml"
+    link.symlink_to(source)
+    with pytest.raises(ConfigurationError, match="regular file"):
+        load_policy(link)
+
+
+def test_policy_rejects_fifo_without_blocking(tmp_path) -> None:
+    import os
+
+    path = tmp_path / "policy.yaml"
+    os.mkfifo(path)
+    with pytest.raises(ConfigurationError, match="regular file"):
+        load_policy(path)
+
+
+def test_policy_enforces_read_limit(tmp_path) -> None:
+    path = tmp_path / "policy.yaml"
+    path.write_bytes(b" " * (1024 * 1024 + 1))
+    with pytest.raises(ConfigurationError, match="1 MiB"):
+        load_policy(path)
+
+
+def test_policy_reports_excessive_parser_nesting(tmp_path) -> None:
+    path = tmp_path / "policy.yaml"
+    path.write_text("[" * 2000 + "]" * 2000)
+    with pytest.raises(ConfigurationError, match="nesting"):
+        load_policy(path)
+
+
+def test_invalid_yaml_does_not_expose_policy_content(tmp_path) -> None:
+    path = tmp_path / "policy.yaml"
+    path.write_text('key: ["FIXTURE_PRIVATE_VALUE"\n')
+    with pytest.raises(ConfigurationError, match="Invalid YAML") as error:
+        load_policy(path)
+    assert "FIXTURE_PRIVATE_VALUE" not in str(error.value)

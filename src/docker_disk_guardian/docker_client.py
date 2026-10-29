@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import re
+from collections.abc import Callable
 from datetime import UTC, datetime
+from functools import wraps
 
 import docker
 from docker.client import DockerClient
@@ -19,6 +20,19 @@ from docker_disk_guardian.models import (
     ResourceType,
     VolumeResource,
 )
+
+
+def _inventory_errors[**P, R](function: Callable[P, R]) -> Callable[P, R]:
+    @wraps(function)
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
+        try:
+            return function(*args, **kwargs)
+        except DockerException as exc:
+            raise DockerUnavailableError(
+                "Docker inventory could not be collected. Check daemon access and retry."
+            ) from exc
+
+    return wrapped
 
 
 class DockerSdkGateway:
@@ -39,6 +53,7 @@ class DockerSdkGateway:
             ) from exc
         return cls(client)
 
+    @_inventory_errors
     def list_containers(self) -> tuple[ContainerResource, ...]:
         resources: list[ContainerResource] = []
         for summary in self._client.api.containers(all=True, size=True):
@@ -70,6 +85,7 @@ class DockerSdkGateway:
             )
         return tuple(resources)
 
+    @_inventory_errors
     def list_images(self) -> tuple[ImageResource, ...]:
         references: dict[str, list[str]] = {}
         for container in self._client.api.containers(all=True):
@@ -94,6 +110,7 @@ class DockerSdkGateway:
             )
         return tuple(resources)
 
+    @_inventory_errors
     def list_volumes(self) -> tuple[VolumeResource, ...]:
         references: dict[str, list[str]] = {}
         for container in self._client.api.containers(all=True):
@@ -118,11 +135,13 @@ class DockerSdkGateway:
                     labels=attributes.get("Labels") or {},
                     driver=attributes.get("Driver", "unknown"),
                     container_ids=tuple(sorted(references.get(name, ()))),
-                    anonymous=re.fullmatch(r"[a-f0-9]{64}", name) is not None,
+                    # Docker names do not prove anonymous creation provenance.
+                    anonymous=False,
                 )
             )
         return tuple(resources)
 
+    @_inventory_errors
     def list_networks(self) -> tuple[NetworkResource, ...]:
         resources: list[NetworkResource] = []
         for network in self._client.networks.list():
@@ -144,6 +163,7 @@ class DockerSdkGateway:
             )
         return tuple(resources)
 
+    @_inventory_errors
     def list_build_cache(self) -> tuple[BuildCacheResource, ...]:
         try:
             cache_entries = self._client.api.df().get("BuildCache") or ()

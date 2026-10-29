@@ -11,7 +11,7 @@ planning policy-based cleanup, and applying only explicitly approved operations.
 - `apply` requires a reviewed policy and confirmation unless `--yes` is explicit.
 - Candidates are recalculated from current daemon state immediately before deletion.
 - Running containers, referenced resources, and Docker default networks are protected.
-- Named volumes and build cache are protected by default.
+- All discovered volumes and build cache are protected by default; a hexadecimal name does not prove anonymous creation.
 - Every decision includes a human-readable reason.
 - Partial failures and skipped operations remain visible.
 
@@ -22,7 +22,7 @@ Review the complete [safety model](docs/safety-model.md) before enabling automat
 - Python 3.12 or newer
 - A local Docker Engine or compatible Docker socket
 
-No cloud account is required.
+No cloud account is required. Policy-file validation currently uses POSIX file-opening protections (Linux/macOS); Windows support is not claimed or included in CI.
 
 ## Installation
 
@@ -36,8 +36,8 @@ python3 -m venv .venv
 For development:
 
 ```bash
-.venv/bin/pip install -e '.[dev]'
-make check
+uv sync --locked --extra dev --group build --group security --python 3.12
+make check coverage
 ```
 
 ## Usage
@@ -105,3 +105,12 @@ affect resources beyond a single reviewed cache entry.
 ## License
 
 MIT
+
+## Agent context, validation and delivery
+
+- Read [agent.md](agent.md) and the applicable repository instructions before making changes.
+- [docs/VALIDATION.md](docs/VALIDATION.md) records dated results and remaining limits.
+- [docs/RELEASE.md](docs/RELEASE.md) explains CI, artifact checks and explicitly authorized manual publication.
+- The French `contexte.md` guide is local and ignored by Git; it is intentionally absent from clones and distributions.
+
+A normal push to `main` runs CI but does not publish a release. Existing GitHub runs describe earlier commits and do not validate the current uncommitted changes.

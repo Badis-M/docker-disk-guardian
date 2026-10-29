@@ -7,9 +7,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-29
+
 ### Added
 
 - `doctor` command for a fast, read-only Docker connectivity check.
+
+### Fixed
+
+- Treat hexadecimal volume names conservatively instead of inferring anonymous provenance.
+- Normalize expected Docker inventory failures and bound policy reads and parser/duration errors.
+- Validate wheel/sdist metadata using explicit Core Metadata 2.4 compatibility.
+
+### Changed
+
+- Lock contributor dependencies with uv and require quality, dependency audit, isolated integration and distribution validation before manual publication.
+- Remove automatic publication on tag push. Version 1.1.0 remains unpublished until explicitly authorized.
 
 ## [1.0.0] - 2026-08-27
 

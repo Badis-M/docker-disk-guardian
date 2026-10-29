@@ -162,3 +162,36 @@ def test_remove_resolves_only_requested_resource_endpoint() -> None:
     client.containers.get.assert_not_called()
     client.volumes.get.assert_not_called()
     client.networks.get.assert_not_called()
+
+
+def test_hexadecimal_volume_name_is_not_proof_of_anonymous_creation() -> None:
+    from docker_disk_guardian.config import CleanupPolicy
+    from docker_disk_guardian.models import DecisionStatus, Inventory
+    from docker_disk_guardian.planner import CleanupPlanner
+
+    client = Mock()
+    client.api.containers.return_value = []
+    volume = Mock()
+    volume.name = "a" * 64
+    volume.attrs = {"Name": volume.name, "CreatedAt": "2026-03-07T00:00:00Z"}
+    client.volumes.list.return_value = [volume]
+    resources = DockerSdkGateway(client).list_volumes()
+    assert not resources[0].anonymous
+    plan = CleanupPlanner(CleanupPolicy()).create_plan(
+        Inventory(collected_at=resources[0].created_at, volumes=resources)
+    )
+    assert plan.decisions[0].status == DecisionStatus.PROTECTED
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["list_containers", "list_images", "list_volumes", "list_networks", "list_build_cache"],
+)
+def test_inventory_sdk_errors_are_actionable(method: str) -> None:
+    client = Mock()
+    client.api.containers.side_effect = DockerException("private daemon detail")
+    client.networks.list.side_effect = DockerException("private daemon detail")
+    client.api.df.side_effect = DockerException("private daemon detail")
+    with pytest.raises(DockerUnavailableError, match="inventory could not be collected") as error:
+        getattr(DockerSdkGateway(client), method)()
+    assert "private daemon detail" not in str(error.value)
