@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import yaml
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StrictBool, ValidationError
 
 from docker_disk_guardian.errors import ConfigurationError
 
@@ -59,15 +59,15 @@ class ProtectionPolicy(PolicyModel):
 
 
 class VolumePolicy(PolicyModel):
-    allow_named_volume_deletion: bool = False
+    allow_named_volume_deletion: StrictBool = False
 
 
 class NetworkPolicy(PolicyModel):
-    allow_custom_network_deletion: bool = False
+    allow_custom_network_deletion: StrictBool = False
 
 
 class BuildCachePolicy(PolicyModel):
-    allow_deletion: bool = False
+    allow_deletion: StrictBool = False
 
 
 class CleanupPolicy(PolicyModel):

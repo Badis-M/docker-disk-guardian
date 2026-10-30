@@ -124,3 +124,16 @@ def test_invalid_yaml_does_not_expose_policy_content(tmp_path) -> None:
     with pytest.raises(ConfigurationError, match="Invalid YAML") as error:
         load_policy(path)
     assert "FIXTURE_PRIVATE_VALUE" not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    ("group", "key"),
+    [
+        ("volumes", "allow_named_volume_deletion"),
+        ("networks", "allow_custom_network_deletion"),
+        ("build_cache", "allow_deletion"),
+    ],
+)
+def test_destructive_opt_ins_require_boolean_values(group: str, key: str) -> None:
+    with pytest.raises(ValidationError, match="valid boolean"):
+        CleanupPolicy.model_validate({group: {key: "yes"}})
