@@ -137,3 +137,9 @@ def test_invalid_yaml_does_not_expose_policy_content(tmp_path) -> None:
 def test_destructive_opt_ins_require_boolean_values(group: str, key: str) -> None:
     with pytest.raises(ValidationError, match="valid boolean"):
         CleanupPolicy.model_validate({group: {key: "yes"}})
+
+
+@pytest.mark.parametrize("value", [True, 1.0, "1"])
+def test_policy_version_requires_integer(value: object) -> None:
+    with pytest.raises(ValidationError, match="version must be an integer"):
+        CleanupPolicy.model_validate({"version": value})

@@ -8,7 +8,15 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import yaml
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StrictBool, ValidationError
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    StrictBool,
+    ValidationError,
+    field_validator,
+)
 
 from docker_disk_guardian.errors import ConfigurationError
 
@@ -72,6 +80,14 @@ class BuildCachePolicy(PolicyModel):
 
 class CleanupPolicy(PolicyModel):
     version: Literal[1] = 1
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def require_integer_version(cls, value: object) -> object:
+        if type(value) is not int:
+            raise ValueError("version must be an integer")
+        return value
+
     retention: RetentionPolicy = Field(default_factory=RetentionPolicy)
     protection: ProtectionPolicy = Field(default_factory=ProtectionPolicy)
     volumes: VolumePolicy = Field(default_factory=VolumePolicy)
