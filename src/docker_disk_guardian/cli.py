@@ -2,6 +2,7 @@
 
 from enum import StrEnum
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Annotated
 
 import typer
@@ -40,10 +41,21 @@ def _emit(content: str, output: Path | None) -> None:
     if output is None:
         typer.echo(content, nl=False)
         return
+    temporary_path: Path | None = None
     try:
-        output.write_text(content, encoding="utf-8")
+        if output.is_symlink():
+            raise typer.BadParameter("Output must not be a symlink.", param_hint="--output")
+        with NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=output.parent, prefix=".guardian-", delete=False
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+            temporary.write(content)
+        temporary_path.replace(output)
     except OSError as exc:
         raise typer.BadParameter(f"Cannot write output file: {exc}", param_hint="--output") from exc
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
 
 @app.command()

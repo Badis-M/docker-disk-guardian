@@ -190,3 +190,16 @@ def test_collection_failure_returns_stable_exit_code(connect: object) -> None:
     assert "inventory could not be collected" in result.output
     assert "private daemon detail" not in result.output
     client.close.assert_called_once()
+
+
+def test_plan_preserves_symlink_target(tmp_path) -> None:
+    target = tmp_path / "target.json"
+    target.write_text("existing", encoding="utf-8")
+    output = tmp_path / "report.json"
+    output.symlink_to(target)
+    with patch(
+        "docker_disk_guardian.cli.DockerSdkGateway.connect", return_value=FakeDockerGateway()
+    ):
+        result = runner.invoke(app, ["plan", "--format", "json", "--output", str(output)])
+    assert result.exit_code == 2
+    assert target.read_text(encoding="utf-8") == "existing"
