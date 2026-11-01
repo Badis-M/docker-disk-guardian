@@ -41,3 +41,5 @@ The test requires an already available `busybox:1.36` image and never pulls it a
 DDG_RUN_INTEGRATION=1 pytest -m integration
 ```
 
+
+Markdown reports escape markup and line breaks in resource names and decision text.

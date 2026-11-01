@@ -1,11 +1,17 @@
 """Portable Markdown reports for inventory and cleanup review."""
 
+from html import escape
+
 from docker_disk_guardian.models import CleanupPlan, Inventory, Resource
 from docker_disk_guardian.reporters.table import format_bytes
 
 
 def _escape(value: str) -> str:
-    return value.replace("|", "\\|").replace("\n", " ")
+    normalized = " ".join(value.splitlines())
+    normalized = escape(normalized, quote=False)
+    for character in r"\|`*_[~]":
+        normalized = normalized.replace(character, "\\" + character)
+    return normalized
 
 
 def render_inventory(inventory: Inventory) -> str:
