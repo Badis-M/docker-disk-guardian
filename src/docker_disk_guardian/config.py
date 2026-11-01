@@ -41,7 +41,10 @@ def parse_duration(value: object) -> timedelta:
     match = _DURATION_PATTERN.fullmatch(value)
     if match is None:
         raise ValueError("duration must be a positive integer followed by s, m, h, d, or w")
-    seconds = int(match.group("amount")) * _DURATION_FACTORS[match.group("unit")]
+    amount = match.group("amount")
+    if len(amount) > len(str(timedelta.max.days * 86400 + 86399)):
+        raise ValueError("duration exceeds the supported range")
+    seconds = int(amount) * _DURATION_FACTORS[match.group("unit")]
     try:
         return timedelta(seconds=seconds)
     except OverflowError as exc:

@@ -143,3 +143,8 @@ def test_destructive_opt_ins_require_boolean_values(group: str, key: str) -> Non
 def test_policy_version_requires_integer(value: object) -> None:
     with pytest.raises(ValidationError, match="version must be an integer"):
         CleanupPolicy.model_validate({"version": value})
+
+
+def test_oversized_duration_has_stable_error() -> None:
+    with pytest.raises(ValueError, match="duration exceeds the supported range"):
+        parse_duration("9" * 5000 + "s")

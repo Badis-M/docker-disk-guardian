@@ -64,3 +64,5 @@ Policies must be readable regular UTF-8 files, at most 1 MiB. Symlinks and speci
 Destructive opt-ins require YAML booleans. Quoted strings and numbers are rejected.
 
 When provided, `version` must be the integer `1`.
+
+Out-of-range durations are rejected before large integer conversion.
