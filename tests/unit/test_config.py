@@ -148,3 +148,11 @@ def test_policy_version_requires_integer(value: object) -> None:
 def test_oversized_duration_has_stable_error() -> None:
     with pytest.raises(ValueError, match="duration exceeds the supported range"):
         parse_duration("9" * 5000 + "s")
+
+
+def test_policy_error_does_not_echo_terminal_control_keys(tmp_path) -> None:
+    path = tmp_path / "policy.yaml"
+    path.write_text('"bad\\x1bkey": true', encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="<key>") as caught:
+        load_policy(path)
+    assert "\x1b" not in str(caught.value)

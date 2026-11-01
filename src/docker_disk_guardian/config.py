@@ -98,6 +98,13 @@ class CleanupPolicy(PolicyModel):
     build_cache: BuildCachePolicy = Field(default_factory=BuildCachePolicy)
 
 
+def _policy_error_location(location: tuple[str | int, ...]) -> str:
+    return ".".join(
+        part if isinstance(part, str) and part.isascii() and part.isidentifier() else "<key>"
+        for part in location
+    )
+
+
 def load_policy(path: Path) -> CleanupPolicy:
     """Load a bounded YAML document and validate every field."""
     try:
@@ -130,7 +137,6 @@ def load_policy(path: Path) -> CleanupPolicy:
         return CleanupPolicy.model_validate(document)
     except ValidationError as exc:
         details = "; ".join(
-            f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
-            for error in exc.errors()
+            f"{_policy_error_location(error['loc'])}: {error['msg']}" for error in exc.errors()
         )
         raise ConfigurationError(f"Invalid policy: {details}") from exc
