@@ -45,3 +45,5 @@ DDG_RUN_INTEGRATION=1 pytest -m integration
 Markdown reports escape markup and line breaks in resource names and decision text.
 
 File output replaces the destination atomically with a private report. Existing symlinks are rejected.
+
+JSON inventory lists resources by ID within each resource type for stable comparisons.
