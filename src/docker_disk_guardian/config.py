@@ -129,7 +129,7 @@ def load_policy(path: Path) -> CleanupPolicy:
         raise ConfigurationError("Policy YAML nesting exceeds safe parser depth.") from exc
     except yaml.YAMLError as exc:
         raise ConfigurationError("Invalid YAML in policy; use a valid YAML mapping.") from exc
-    if document is None:
+    if document is None and not content.strip():
         document = {}
     if not isinstance(document, dict):
         raise ConfigurationError("Policy root must be a YAML mapping.")

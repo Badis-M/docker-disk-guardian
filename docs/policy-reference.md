@@ -70,3 +70,5 @@ Out-of-range durations are rejected before large integer conversion.
 Invalid field names containing control characters are redacted in diagnostics.
 
 Schema validation reports the field path and error category without echoing the field value.
+
+Use `{}` for an explicit default policy. A YAML `null` document is rejected.
