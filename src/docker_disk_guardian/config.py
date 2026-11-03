@@ -137,6 +137,7 @@ def load_policy(path: Path) -> CleanupPolicy:
         return CleanupPolicy.model_validate(document)
     except ValidationError as exc:
         details = "; ".join(
-            f"{_policy_error_location(error['loc'])}: {error['msg']}" for error in exc.errors()
+            f"{_policy_error_location(error['loc'])}: {error['type']}"
+            for error in exc.errors(include_input=False, include_context=False)
         )
         raise ConfigurationError(f"Invalid policy: {details}") from exc

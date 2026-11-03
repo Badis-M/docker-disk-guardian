@@ -68,3 +68,5 @@ When provided, `version` must be the integer `1`.
 Out-of-range durations are rejected before large integer conversion.
 
 Invalid field names containing control characters are redacted in diagnostics.
+
+Schema validation reports the field path and error category without echoing the field value.

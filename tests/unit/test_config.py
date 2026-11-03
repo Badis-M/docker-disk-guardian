@@ -156,3 +156,11 @@ def test_policy_error_does_not_echo_terminal_control_keys(tmp_path) -> None:
     with pytest.raises(ConfigurationError, match="<key>") as caught:
         load_policy(path)
     assert "\x1b" not in str(caught.value)
+
+
+def test_policy_diagnostic_excludes_literal_input(tmp_path) -> None:
+    path = tmp_path / "policy.yaml"
+    path.write_text("volumes: {allow_named_volume_deletion: placeholder}", encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="bool_type") as caught:
+        load_policy(path)
+    assert "placeholder" not in str(caught.value)
