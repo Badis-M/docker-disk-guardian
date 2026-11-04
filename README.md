@@ -2,8 +2,23 @@
 
 [![CI](https://github.com/Badis-M/docker-disk-guardian/actions/workflows/ci.yml/badge.svg)](https://github.com/Badis-M/docker-disk-guardian/actions/workflows/ci.yml)
 
-Docker Disk Guardian is a safety-first Python CLI for understanding local Docker disk usage,
-planning policy-based cleanup, and applying only explicitly approved operations.
+## 30-second pitch
+
+Docker Disk Guardian helps developers and operators recover disk space from a local
+Docker daemon while keeping the decision under their control. It inventories
+resources, explains what a cleanup policy would remove, and gives you a report
+to review before applying that policy. Running containers and resources they use
+are protected. You can start with the read-only commands and choose whether to
+run a cleanup after reviewing the results.
+
+## Overview
+
+Start with `doctor` to check the daemon and `inspect` to see disk usage. Run
+`policy validate` and `plan` to review candidates, protections and estimates.
+The `apply` command checks the current inventory before executing a confirmed
+cleanup. Estimates include only sizes reported by Docker, and targeted build
+cache deletion remains unavailable. Use JSON for automation and Markdown for
+human review.
 
 ## Safety guarantees
 
