@@ -60,3 +60,15 @@ targeted deletion cannot be guaranteed by the Docker prune API.
 ## Policy input boundary
 
 Policies must be readable regular UTF-8 files, at most 1 MiB. Symlinks and special files are rejected; reads are bounded and FIFOs do not block validation. Excessive parser nesting and duration overflow produce configuration errors. No raw policy body is included in error messages.
+
+Destructive opt-ins require YAML booleans. Quoted strings and numbers are rejected.
+
+When provided, `version` must be the integer `1`.
+
+Out-of-range durations are rejected before large integer conversion.
+
+Invalid field names containing control characters are redacted in diagnostics.
+
+Schema validation reports the field path and error category without echoing the field value.
+
+Use `{}` for an explicit default policy. A YAML `null` document is rejected.

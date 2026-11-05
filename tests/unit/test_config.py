@@ -124,3 +124,50 @@ def test_invalid_yaml_does_not_expose_policy_content(tmp_path) -> None:
     with pytest.raises(ConfigurationError, match="Invalid YAML") as error:
         load_policy(path)
     assert "FIXTURE_PRIVATE_VALUE" not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    ("group", "key"),
+    [
+        ("volumes", "allow_named_volume_deletion"),
+        ("networks", "allow_custom_network_deletion"),
+        ("build_cache", "allow_deletion"),
+    ],
+)
+def test_destructive_opt_ins_require_boolean_values(group: str, key: str) -> None:
+    with pytest.raises(ValidationError, match="valid boolean"):
+        CleanupPolicy.model_validate({group: {key: "yes"}})
+
+
+@pytest.mark.parametrize("value", [True, 1.0, "1"])
+def test_policy_version_requires_integer(value: object) -> None:
+    with pytest.raises(ValidationError, match="version must be an integer"):
+        CleanupPolicy.model_validate({"version": value})
+
+
+def test_oversized_duration_has_stable_error() -> None:
+    with pytest.raises(ValueError, match="duration exceeds the supported range"):
+        parse_duration("9" * 5000 + "s")
+
+
+def test_policy_error_does_not_echo_terminal_control_keys(tmp_path) -> None:
+    path = tmp_path / "policy.yaml"
+    path.write_text('"bad\\x1bkey": true', encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="<key>") as caught:
+        load_policy(path)
+    assert "\x1b" not in str(caught.value)
+
+
+def test_policy_diagnostic_excludes_literal_input(tmp_path) -> None:
+    path = tmp_path / "policy.yaml"
+    path.write_text("volumes: {allow_named_volume_deletion: placeholder}", encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="bool_type") as caught:
+        load_policy(path)
+    assert "placeholder" not in str(caught.value)
+
+
+def test_explicit_null_is_not_an_empty_policy(tmp_path) -> None:
+    path = tmp_path / "policy.yaml"
+    path.write_text("null\n", encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="YAML mapping"):
+        load_policy(path)

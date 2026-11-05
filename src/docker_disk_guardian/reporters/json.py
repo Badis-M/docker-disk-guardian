@@ -3,7 +3,11 @@
 import json
 from typing import Any
 
-from docker_disk_guardian.models import CleanupPlan, Inventory
+from docker_disk_guardian.models import CleanupPlan, Inventory, Resource
+
+
+def _resource_documents(resources: tuple[Resource, ...]) -> list[dict[str, Any]]:
+    return [item.model_dump(mode="json") for item in sorted(resources, key=lambda item: item.id)]
 
 
 def inventory_document(inventory: Inventory) -> dict[str, Any]:
@@ -13,11 +17,11 @@ def inventory_document(inventory: Inventory) -> dict[str, Any]:
         "collected_at": inventory.collected_at.isoformat(),
         "known_total_bytes": inventory.total_known_bytes,
         "resources": {
-            "containers": [item.model_dump(mode="json") for item in inventory.containers],
-            "images": [item.model_dump(mode="json") for item in inventory.images],
-            "volumes": [item.model_dump(mode="json") for item in inventory.volumes],
-            "networks": [item.model_dump(mode="json") for item in inventory.networks],
-            "build_cache": [item.model_dump(mode="json") for item in inventory.build_cache],
+            "containers": _resource_documents(inventory.containers),
+            "images": _resource_documents(inventory.images),
+            "volumes": _resource_documents(inventory.volumes),
+            "networks": _resource_documents(inventory.networks),
+            "build_cache": _resource_documents(inventory.build_cache),
         },
     }
 

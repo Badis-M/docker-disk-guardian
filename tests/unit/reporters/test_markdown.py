@@ -36,3 +36,12 @@ def test_markdown_plan_contains_reasons() -> None:
 
     assert "container is running" in report
     assert "Candidates: **0**" in report
+
+
+def test_markdown_inventory_neutralizes_raw_markup() -> None:
+    now = datetime(2026, 3, 7, tzinfo=UTC)
+    inventory = Inventory(
+        collected_at=now,
+        images=(ImageResource(id="image-1", name="<img>\r[link]", created_at=now),),
+    )
+    assert r"&lt;img&gt; \[link\]" in render_inventory(inventory)

@@ -8,7 +8,15 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import yaml
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    StrictBool,
+    ValidationError,
+    field_validator,
+)
 
 from docker_disk_guardian.errors import ConfigurationError
 
@@ -33,7 +41,10 @@ def parse_duration(value: object) -> timedelta:
     match = _DURATION_PATTERN.fullmatch(value)
     if match is None:
         raise ValueError("duration must be a positive integer followed by s, m, h, d, or w")
-    seconds = int(match.group("amount")) * _DURATION_FACTORS[match.group("unit")]
+    amount = match.group("amount")
+    if len(amount) > len(str(timedelta.max.days * 86400 + 86399)):
+        raise ValueError("duration exceeds the supported range")
+    seconds = int(amount) * _DURATION_FACTORS[match.group("unit")]
     try:
         return timedelta(seconds=seconds)
     except OverflowError as exc:
@@ -59,24 +70,39 @@ class ProtectionPolicy(PolicyModel):
 
 
 class VolumePolicy(PolicyModel):
-    allow_named_volume_deletion: bool = False
+    allow_named_volume_deletion: StrictBool = False
 
 
 class NetworkPolicy(PolicyModel):
-    allow_custom_network_deletion: bool = False
+    allow_custom_network_deletion: StrictBool = False
 
 
 class BuildCachePolicy(PolicyModel):
-    allow_deletion: bool = False
+    allow_deletion: StrictBool = False
 
 
 class CleanupPolicy(PolicyModel):
     version: Literal[1] = 1
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def require_integer_version(cls, value: object) -> object:
+        if type(value) is not int:
+            raise ValueError("version must be an integer")
+        return value
+
     retention: RetentionPolicy = Field(default_factory=RetentionPolicy)
     protection: ProtectionPolicy = Field(default_factory=ProtectionPolicy)
     volumes: VolumePolicy = Field(default_factory=VolumePolicy)
     networks: NetworkPolicy = Field(default_factory=NetworkPolicy)
     build_cache: BuildCachePolicy = Field(default_factory=BuildCachePolicy)
+
+
+def _policy_error_location(location: tuple[str | int, ...]) -> str:
+    return ".".join(
+        part if isinstance(part, str) and part.isascii() and part.isidentifier() else "<key>"
+        for part in location
+    )
 
 
 def load_policy(path: Path) -> CleanupPolicy:
@@ -103,7 +129,7 @@ def load_policy(path: Path) -> CleanupPolicy:
         raise ConfigurationError("Policy YAML nesting exceeds safe parser depth.") from exc
     except yaml.YAMLError as exc:
         raise ConfigurationError("Invalid YAML in policy; use a valid YAML mapping.") from exc
-    if document is None:
+    if document is None and not content.strip():
         document = {}
     if not isinstance(document, dict):
         raise ConfigurationError("Policy root must be a YAML mapping.")
@@ -111,7 +137,7 @@ def load_policy(path: Path) -> CleanupPolicy:
         return CleanupPolicy.model_validate(document)
     except ValidationError as exc:
         details = "; ".join(
-            f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
-            for error in exc.errors()
+            f"{_policy_error_location(error['loc'])}: {error['type']}"
+            for error in exc.errors(include_input=False, include_context=False)
         )
         raise ConfigurationError(f"Invalid policy: {details}") from exc
